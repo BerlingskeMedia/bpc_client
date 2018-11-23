@@ -4,31 +4,38 @@
 
 Install via `npm install bpc_client`
 
+Initiate a new client:
 
 ```
 const bpc_client = require('bpc_client');
 
-async function findUserInBPC({email}) {
-  return await bpc_client.request({
+async function run(){
+
+  await bpc_client.connect();
+
+  const dako = await bpc_client.request({
     method: 'GET',
-    path: `/users?email=${ encodeURIComponent(email) }`
+    path: `/users?email=${ encodeURIComponent('dako@berlingskemedia.dk') }`
   },
-  null);
+  null); // <-- Using the app ticket
+
+  const profile = await bpc_client.request({
+    method: 'GET',
+    path: `/permissions/${dako.id}/profile?permission_sources.sap_orders=1`
+  },
+  null);  // <-- Using the app ticket
 }
 
-
-async function getUserSapOrdersInBPC({id}) {
-  return await bpc_client.request({
-    method: 'GET',
-    path: `/permissions/${id}/profile?permission_sources.sap_orders=1`
-  },
-  null);
-}
+run();
 ```
+
+
 
 ## API
 
-### request
+### (_async_) connect
+
+### (_async_) request
 
 ### env
 
