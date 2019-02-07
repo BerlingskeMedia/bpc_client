@@ -6,6 +6,7 @@ This package is published on NPM: [https://www.npmjs.com/package/bpc_client](htt
 
 Install via `npm install bpc_client`
 
+
 Initiate a new client:
 
 ```
@@ -35,10 +36,30 @@ run();
 
 ## API
 
-### (_async_) connect
+### [_async_] connect (app, url)
 
-### (_async_) request
+Argument `app` = `{id: <APP_ID>, key: <APP_SECRET>, algorithm: <ALGORITHM>}`.
 
-### env
+Argument `url` = Full path to BPC.
 
-### events
+Both arguments are optional: `app` can be set using ENV VARS and `url` defaults to 'https://berlingskemedia.net'.
+
+Algoritm defaults to `sha256`.
+
+Supported ENV vars: 
+* BPC_APP_ID,
+* BPC_APP_SECRET,
+* BPC_APP_ALGORITHM
+
+### [_async_] request(options, credentials)
+
+Makes HTTP requests to BPC.
+
+Argument `options` are compatible to Nodes [http.request(options[, callback])](https://nodejs.org/dist/latest-v8.x/docs/api/http.html#http_http_request_options_callback)
+
+Argument `credentials` = a BPC ticket.
+
+### [_EventEmitter_] events
+
+* 'appticket' when succesful getting or reissuing the app ticket.
+* 'ready' when client is initialized.
