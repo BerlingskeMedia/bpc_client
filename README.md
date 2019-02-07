@@ -1,5 +1,7 @@
 # bpc_client
 
+This package is published on NPM: [https://www.npmjs.com/package/bpc_client](https://www.npmjs.com/package/bpc_client)
+
 ## Usage
 
 Install via `npm install bpc_client`
