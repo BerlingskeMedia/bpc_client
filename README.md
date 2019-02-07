@@ -42,7 +42,7 @@ Argument `app` = `{id: <APP_ID>, key: <APP_SECRET>, algorithm: <ALGORITHM>}`.
 
 Argument `url` = Full path to BPC.
 
-Both arguments are optional: `app` can be set using ENV VARS and `url` defaults to 'https://berlingskemedia.net'.
+Both arguments are optional: `app` can be set using ENV vars and `url` defaults to `https://bpc.berlingskemedia.net`.
 
 Algoritm defaults to `sha256`.
 
