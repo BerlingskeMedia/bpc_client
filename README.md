@@ -14,6 +14,14 @@ const bpc_client = require('bpc_client');
 
 async function run(){
 
+  // Optional use ENV vars. See below
+  bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_APP_ALGORITHM> };
+  bpc_client.app = <URL>;
+
+  bpc_client.on('ready', async () => {
+    console.log('Connected to BPC');
+  });
+
   await bpc_client.connect();
 
   const dako = await bpc_client.request({
@@ -38,18 +46,18 @@ run();
 
 ### [_async_] connect (app, url)
 
-Argument `app` = `{id: <APP_ID>, key: <APP_SECRET>, algorithm: <ALGORITHM>}`.
+Argument `app` = `{id: <BPC_APP_ID>, key: <BPC_APP_KEY>, algorithm: <BPC_APP_ALGORITHM>}`.
 
-Argument `url` = Full path to BPC.
+Argument `url` = Full path to BPC. Optional parameter. Defaults to `https://bpc.berlingskemedia.net`
 
-Both arguments are optional: `app` can be set using ENV vars and `url` defaults to `https://bpc.berlingskemedia.net`.
-
-Algoritm defaults to `sha256`.
+Both arguments `app` and `url` are optional and can be set using ENV vars.
 
 Supported ENV vars: 
 * BPC_APP_ID,
-* BPC_APP_SECRET,
+* BPC_APP_KEY,
 * BPC_APP_ALGORITHM
+
+Algoritm defaults to `sha256`.
 
 ### [_async_] request(options, credentials)
 
@@ -59,7 +67,7 @@ Argument `options` are compatible to Nodes [http.request(options[, callback])](h
 
 Argument `credentials` = a BPC ticket.
 
-### [_EventEmitter_] events
+### [_EventEmitter_]
 
 * 'appticket' when succesful getting or reissuing the app ticket.
 * 'ready' when client is initialized.
