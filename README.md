@@ -18,7 +18,7 @@ async function run(){
   bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_APP_ALGORITHM> };
   bpc_client.app = <URL>;
 
-  bpc_client.on('ready', async () => {
+  bpc_client.events.on('ready', async () => {
     console.log('Connected to BPC');
   });
 
