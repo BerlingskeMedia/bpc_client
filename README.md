@@ -14,9 +14,9 @@ const bpc_client = require('bpc_client');
 
 async function run(){
 
-  // Optional use ENV vars. See below
+  // Optional use ENV vars. See below.
   bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_APP_ALGORITHM> };
-  bpc_client.app = <URL>;
+  bpc_client.url = <BPC_URL>;
 
   bpc_client.events.on('ready', async () => {
     console.log('Connected to BPC');
@@ -77,20 +77,28 @@ The user ticket if retrieved by using BPC endpoint `/rsvp` and `/ticket/user`.
 
 ## API
 
-### [_async_] connect (app, url)
-
-Argument `app` = `{id: <BPC_APP_ID>, key: <BPC_APP_KEY>, algorithm: <BPC_APP_ALGORITHM>}`.
-
-Argument `url` = Full path to BPC. Optional parameter. Defaults to `https://bpc.berlingskemedia.net`
-
-Both arguments `app` and `url` are optional and can be set using ENV vars.
-
-Supported ENV vars: 
+ Supported ENV vars: 
 * BPC_APP_ID,
 * BPC_APP_KEY,
 * BPC_APP_ALGORITHM
+* BPC_URL
 
-Algoritm defaults to `sha256`.
+
+### [Property:Object] app
+
+The app crentials object containing:
+
+* `id`: App id. Will use ENV var `BPC_APP_ID` if present.
+* `key`: App secret key. Will use ENV var `BPC_APP_KEY` if present.
+* `algorithm`: Will use ENV var `BPC_APP_ALGORITHM` if present. Defaults to `sha256`.
+
+### [Property:String] url
+
+Full path to BPC. Will use ENV var `BPC_URL` if present. Defaults to `https://bpc.berlingskemedia.net`.
+
+### [_async_] connect (app, url)
+
+Both arguments `app` and `url` are optional and can be set beforehand using ENV vars or the corresponding property. See above.
 
 ### [_async_] request(options, credentials)
 
