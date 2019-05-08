@@ -84,7 +84,7 @@ The user ticket if retrieved by using BPC endpoint `/rsvp` and `/ticket/user`.
 * BPC_URL
 
 
-### [Property:Object] app
+### [Property:Object] *app*
 
 The app crentials object containing:
 
@@ -92,15 +92,15 @@ The app crentials object containing:
 * `key`: App secret key. Will use ENV var `BPC_APP_KEY` if present.
 * `algorithm`: Will use ENV var `BPC_APP_ALGORITHM` if present. Defaults to `sha256`.
 
-### [Property:String] url
+### [Property:String] *url*
 
 Full path to BPC. Will use ENV var `BPC_URL` if present. Defaults to `https://bpc.berlingskemedia.net`.
 
-### [_async_] connect (app, url)
+### [_async_] *connect* (app, url)
 
 Both arguments `app` and `url` are optional and can be set beforehand using ENV vars or the corresponding property. See above.
 
-### [_async_] request(options, credentials)
+### [_async_] *request* (options, credentials)
 
 Makes HTTP requests to BPC.
 
@@ -108,7 +108,7 @@ Argument `options` are compatible to Nodes [http.request(options[, callback])](h
 
 Argument `credentials` [OPTIONAL] = a BPC ticket. If not provided, the app ticket will used.
 
-### [_EventEmitter_]
+### [_EventEmitter_] *events*
 
 * 'appticket' when succesful getting or reissuing the app ticket.
 * 'ready' when client is initialized.
