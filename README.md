@@ -15,7 +15,7 @@ const bpc_client = require('bpc_client');
 async function run(){
 
   // Optional use ENV vars. See below.
-  bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_APP_ALGORITHM> };
+  bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_ALGORITHM> };
   bpc_client.url = <BPC_URL>;
 
   bpc_client.events.on('ready', async () => {
@@ -80,7 +80,7 @@ The user ticket if retrieved by using BPC endpoint `/rsvp` and `/ticket/user`.
  Supported ENV vars: 
 * BPC_APP_ID,
 * BPC_APP_KEY,
-* BPC_APP_ALGORITHM
+* BPC_ALGORITHM
 * BPC_URL
 
 
@@ -90,7 +90,7 @@ The app crentials object containing:
 
 * `id`: App id. Will use ENV var `BPC_APP_ID` if present.
 * `key`: App secret key. Will use ENV var `BPC_APP_KEY` if present.
-* `algorithm`: Will use ENV var `BPC_APP_ALGORITHM` if present. Defaults to `sha256`.
+* `algorithm`: Will use ENV var `BPC_ALGORITHM` if present. Defaults to `sha256`.
 
 ### [Property:String] *url*
 
