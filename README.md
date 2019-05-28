@@ -52,7 +52,7 @@ The user ticket if retrieved by using BPC endpoint `/rsvp` and `/ticket/user`.
 
   const userTicket = {
     "exp":1557316417598,
-    "app":"console",
+    "app":"test_app",
     "scope":
       [
         "berlingske",
@@ -73,6 +73,7 @@ The user ticket if retrieved by using BPC endpoint `/rsvp` and `/ticket/user`.
 
 ```
 
+If you only need to make requests using a user ticket - and not the app ticket, like in the example above, do not run the `connect()`.
 
 
 ## API
