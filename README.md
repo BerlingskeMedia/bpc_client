@@ -12,27 +12,21 @@ Initiate a new client:
 ```
 const bpc_client = require('bpc_client');
 
-async function run(){
+// Optional use ENV vars. See below.
+bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_ALGORITHM> };
+bpc_client.url = <BPC_URL>; // Defaults to https://bpc.berlingskemedia.net
 
-  // Optional use ENV vars. See below.
-  bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_ALGORITHM> };
-  bpc_client.url = <BPC_URL>;
+
+async function run(){
 
   bpc_client.events.on('ready', async () => {
     console.log('Connected to BPC');
   });
 
   await bpc_client.connect();
-}
-
-run();
-
-```
 
 
-Making requests using app ticket.
-
-```
+  // Making requests using app ticket.
   const dako = await bpc_client.request({
     method: 'GET',
     path: `/users?email=${ encodeURIComponent('dako@berlingskemedia.dk') }`
@@ -43,7 +37,48 @@ Making requests using app ticket.
     path: `/permissions/${dako.id}/profile?permission_sources.sap_orders=1`
   });  // <-- Using the app ticket
 
+
+}
+
+run();
+
 ```
+
+
+
+You can also use `bpc_client` to make requests to other APIs, when they are secured by BPC authorization (e.g. when using [https://www.npmjs.com/package/hapi-bpc](https://www.npmjs.com/package/hapi-bpc) on the API.)
+
+```
+const bpc_client = require('bpc_client');
+
+// Optional use ENV vars. See below.
+bpc_client.app = { id: <BPC_APP_ID> key: <BPC_APP_KEY> algorithm: <BPC_ALGORITHM> };
+bpc_client.url = <BPC_URL>; // Defaults to https://bpc.berlingskemedia.net
+
+
+async function run(){
+
+  // This will get the app ticket from BPC
+  await bpc_client.connect();
+
+
+  const url_of_other_API = require('url').parse('https://profil.berlingskemedia.dk');
+
+  // Making authorized requests to the other API.
+  const dako = await bpc_client.request({
+    hostname: url_of_other_API.hostname,
+    path: `/api/users?email=${ encodeURIComponent('dako@berlingskemedia.dk') }`
+  });
+}
+
+run();
+
+```
+
+
+
+
+
 
 Making requests using a user ticket.
 The user ticket if retrieved by using BPC endpoint `/rsvp` and `/ticket/user`.
