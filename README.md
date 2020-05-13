@@ -148,3 +148,15 @@ Argument `credentials` [OPTIONAL] = a BPC ticket. If not provided, the app ticke
 
 * 'appticket' when succesful getting or reissuing the app ticket.
 * 'ready' when client is initialized.
+
+
+# Publish to NPM
+
+Before you can publish, you need to be maintainer and run `npm login`.
+
+Do this:
+
+1. Commit/merge your change to master branch.
+2. Run `npm version major|minor|patch` to increase the semver version in package.json file.
+3. Run `npm publish`.
+4. Run `git push`.
