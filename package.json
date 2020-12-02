@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc --build tsconfig.prod.json",
+    "prepare": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
     "ts-check": "tsc -p . --noEmit",
