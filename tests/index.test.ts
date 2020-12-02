@@ -37,7 +37,7 @@ describe('client tests', () => {
     Client.app = {
       id: process.env.BPC_APP_ID,
       key: process.env.BPC_APP_KEY,
-      algorithm: process.env.BPC_ALGORITHM as AllowedAlgorithms,
+      algorithm: process.env.BPC_ALGORITHM as AllowedAlgorithms || 'sha256',
     };
     Client.appTicket = null;
   });
