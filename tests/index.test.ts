@@ -73,7 +73,7 @@ describe('client tests', () => {
   it('should make http request without Authorization header and string payload', async () => {
     // given
     const options = { path: '/getTicket', payload: 'some string to send' };
-    const credentials = { key: 'test1' }  as AppTicket;
+    const credentials = { key: 'test1' } as AppTicket;
     Client.url = 'http://bdk.fake';
     rawResponse = createRawResponse(200);
 
