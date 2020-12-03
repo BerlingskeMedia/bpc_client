@@ -2,8 +2,8 @@
   "name": "bpc_client",
   "version": "2.0.0",
   "description": "Node client to BPC",
-  "main": "dist/lib/index.js",
-  "types": "dist/lib/index.d.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.js",
   "directories": {
     "lib": "lib"
   },
