@@ -35,8 +35,8 @@ describe('client tests', () => {
   afterEach(() => {
     Client.url = 'https://bdk.fake';
     Client.app = {
-      id: process.env.BPC_APP_ID,
-      key: process.env.BPC_APP_KEY,
+      id: process.env.BPC_APP_ID || '124oeh12b21gfoi2bo3utfb21o',
+      key: process.env.BPC_APP_KEY || 'vgjb24ejvg',
       algorithm: process.env.BPC_ALGORITHM as AllowedAlgorithms || 'sha256',
     };
     Client.appTicket = null;

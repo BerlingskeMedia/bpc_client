@@ -15,7 +15,6 @@
     "target": "es6",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "strictNullChecks": false,
     "declaration": true
   },
   "include": [

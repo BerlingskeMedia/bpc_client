@@ -1,7 +1,7 @@
 import Boom from '@hapi/boom';
 import Hawk from '@hapi/hawk';
 import Joi from 'joi';
-import http from 'http';
+import http, { ServerResponse } from 'http';
 import { EventEmitter } from 'events';
 import https, { RequestOptions } from 'https';
 import Url from 'url';
@@ -31,7 +31,7 @@ export interface BpcClient {
   events: EventEmitter;
   app: AppTicket | null;
   url: string;
-  appTicket: AppTicket;
+  appTicket: AppTicket | null;
   ticketBuffer: number;
   errorTimeout: number;
   request: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<any>;
@@ -46,8 +46,8 @@ export interface BpcClient {
 const client: BpcClient = {
   events: new EventEmitter(),
   app: {
-    id: process.env.BPC_APP_ID,
-    key: process.env.BPC_APP_KEY,
+    id: process.env.BPC_APP_ID || '',
+    key: process.env.BPC_APP_KEY || '',
     algorithm: (process.env.BPC_ALGORITHM as AllowedAlgorithms) || 'sha256',
   },
   url: process.env.BPC_URL || 'https://bpc.berlingskemedia.net',
@@ -70,7 +70,7 @@ const client: BpcClient = {
     const appTicket: AppTicket | null = credentials || module.exports.appTicket || null;
 
     if (appTicket !== null && typeof appTicket === 'object' && Object.keys(appTicket).length > 1) {
-      const requestHref = Url.resolve(parsedUrl.href, newOptions.path);
+      const requestHref = Url.resolve(parsedUrl.href, newOptions.path || '');
       let hawkHeader;
       try {
         hawkHeader = Hawk.client.header(
@@ -82,6 +82,9 @@ const client: BpcClient = {
         return new Error(`Hawk header: ${e.message}`);
       }
 
+      if (!newOptions.headers) {
+        newOptions.headers = {};
+      }
       newOptions.headers.Authorization = hawkHeader.header;
     }
 
@@ -103,7 +106,7 @@ const client: BpcClient = {
 
       req.end();
 
-      req.on('response', (response) => {
+      req.on('response', (response: ServerResponse) => {
         let data = '';
 
         response.on('data', (chunk) => {
