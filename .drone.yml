@@ -1,0 +1,35 @@
+---
+kind: pipeline
+type: docker
+name: PR checks node 14
+
+steps:
+  - name: Run qa check
+    image: node:14-alpine
+    commands:
+      - npm ci
+      - npm run ts-check
+      - npm run eslint
+      - npm test
+
+trigger:
+  event:
+    - pull_request
+
+---
+kind: pipeline
+type: docker
+name: PR checks node 12
+
+steps:
+  - name: Run qa check
+    image: node:12-alpine
+    commands:
+      - npm ci
+      - npm run ts-check
+      - npm run eslint
+      - npm test
+
+trigger:
+  event:
+    - pull_request
