@@ -37,7 +37,7 @@ export interface BpcClient {
   request: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<any>;
   getAppTicket: () => Promise<AppTicket>;
   reissueAppTicket: () => Promise<AppTicket>;
-  connect: (app: AppTicket, url?: string) => Promise<void>;
+  connect: (app?: AppTicket, url?: string) => Promise<void>;
   boom: unknown,
   hawk: unknown,
   joi: unknown,
