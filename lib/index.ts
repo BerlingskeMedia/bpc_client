@@ -29,7 +29,7 @@ export interface BpcRequestOptions extends RequestOptions {
 
 export interface BpcClient {
   events: EventEmitter;
-  app: AppTicket | null;
+  app: AppTicket;
   url: string;
   appTicket: AppTicket | null;
   ticketBuffer: number;
@@ -37,7 +37,7 @@ export interface BpcClient {
   request: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<any>;
   getAppTicket: () => Promise<AppTicket>;
   reissueAppTicket: () => Promise<AppTicket>;
-  connect: (app: AppTicket, url?: string) => Promise<void>;
+  connect: (app?: AppTicket, url?: string) => Promise<void>;
   boom: unknown,
   hawk: unknown,
   joi: unknown,
@@ -171,7 +171,7 @@ const client: BpcClient = {
     }
   },
 
-  connect: async (app: AppTicket, url?: string): Promise<void> => {
+  connect: async (app: AppTicket = client.app, url?: string): Promise<void> => {
     const newApp = {
       ...module.exports.app,
       ...app,
