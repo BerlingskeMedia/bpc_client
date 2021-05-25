@@ -147,7 +147,7 @@ const client: BpcClient = {
       return result;
     } catch (ex) {
       console.error(ex);
-      setTimeout(() => module.exports.getAppTicket, module.exports.errorTimeout);
+      setTimeout(() => module.exports.getAppTicket(), module.exports.errorTimeout);
       module.exports.appTicket = null;
       return module.exports.appTicket;
     }
@@ -161,11 +161,11 @@ const client: BpcClient = {
       );
       module.exports.appTicket = result;
       module.exports.events.emit('appticket');
-      setTimeout(() => module.exports.reissueAppTicket, result.exp - Date.now() - module.exports.ticketBuffer);
+      setTimeout(() => module.exports.reissueAppTicket(), result.exp - Date.now() - module.exports.ticketBuffer);
       return result;
     } catch (ex) {
       console.error(ex);
-      setTimeout(() => module.exports.getAppTicket, module.exports.errorTimeout);
+      setTimeout(() => module.exports.getAppTicket(), module.exports.errorTimeout);
       module.exports.appTicket = null;
       return module.exports.appTicket;
     }
