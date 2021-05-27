@@ -125,7 +125,7 @@ const client: BpcClient = {
 
           if (response.statusCode > 300) {
             const err = new Error(parsedData.message || data || 'Unknown error');
-            reject(Boom.boomify(err, { statusCode: response.statusCode }));
+            reject(Boom.boomify(err, { statusCode: response.statusCode, data: parsedData }));
           } else {
             resolve(parsedData);
           }
