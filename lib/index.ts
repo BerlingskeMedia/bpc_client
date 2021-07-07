@@ -4,9 +4,7 @@ import Joi from 'joi';
 import fetch, { Response } from 'node-fetch';
 import { EventEmitter } from 'events';
 import Url from 'url';
-// @types/node  ^14.17.4  →  ^16.0.0
-// babel-jest    ^26.6.3  →  ^27.0.6
-// jest          ^26.6.3  →  ^27.0.6
+
 export type AllowedAlgorithms = 'sha1' | 'sha256';
 
 const appSchema = Joi.object().keys({
