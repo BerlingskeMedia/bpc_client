@@ -5,7 +5,6 @@ jest.mock('node-fetch');
 // eslint-disable-next-line
 import fetch from 'node-fetch';
 const mockedFetch = fetch as any;
-const { Response } = jest.requireActual('node-fetch');
 jest.useFakeTimers();
 
 describe('client tests', () => {
@@ -151,7 +150,7 @@ describe('client tests', () => {
 
   it('should fetch app ticket', async () => {
     // given
-    const credentials = { key: 'test1', id: 'test2'};
+    const credentials = { key: 'test1', id: 'test2' };
     Client.app = credentials as AppTicket;
     mockedFetch.mockReturnValue(Promise.resolve({
       json: () => Promise.resolve({ ...credentials, exp: Date.now() + 10000 }),

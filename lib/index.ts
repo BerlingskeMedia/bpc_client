@@ -29,7 +29,7 @@ export interface BpcClient {
   appTicket: AppTicket | null;
   ticketBuffer: number;
   errorTimeout: number;
-  request: (options: unknown, credentials?: AppTicket) => Promise<any>;
+  request: (options: unknown, credentials?: AppTicket, fullResponse?: boolean) => Promise<any>;
   getAppTicket: () => Promise<AppTicket>;
   reissueAppTicket: () => Promise<AppTicket>;
   connect: (app?: AppTicket, url?: string) => Promise<void>;
@@ -50,7 +50,7 @@ const client: BpcClient = {
   ticketBuffer: 1000 * 30, // 30 seconds
   errorTimeout: 1000 * 60 * 5, // Five minutes
 
-  request: async (options: any, credentials?: AppTicket): Promise<any> => {
+  request: async (options: any, credentials?: AppTicket, fullResponse = false): Promise<Response | any> => {
     const parsedUrl = Url.parse(module.exports.url);
     const newOptions = {
       ...parsedUrl,
@@ -97,6 +97,9 @@ const client: BpcClient = {
     }
     const data: any = await response.json();
 
+    if (fullResponse) {
+      return response;
+    }
     return data;
   },
 
