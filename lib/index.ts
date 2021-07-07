@@ -1,11 +1,12 @@
 import Boom from '@hapi/boom';
 import Hawk from '@hapi/hawk';
 import Joi from 'joi';
-import http, { ServerResponse } from 'http';
+import fetch, { Response } from 'node-fetch';
 import { EventEmitter } from 'events';
-import https, { RequestOptions } from 'https';
 import Url from 'url';
-
+// @types/node  ^14.17.4  →  ^16.0.0
+// babel-jest    ^26.6.3  →  ^27.0.6
+// jest          ^26.6.3  →  ^27.0.6
 export type AllowedAlgorithms = 'sha1' | 'sha256';
 
 const appSchema = Joi.object().keys({
@@ -23,10 +24,6 @@ export interface AppTicket {
   algorithm: AllowedAlgorithms;
 }
 
-export interface BpcRequestOptions extends RequestOptions {
-  payload?: string | unknown;
-}
-
 export interface BpcClient {
   events: EventEmitter;
   app: AppTicket;
@@ -34,7 +31,7 @@ export interface BpcClient {
   appTicket: AppTicket | null;
   ticketBuffer: number;
   errorTimeout: number;
-  request: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<any>;
+  request: (options: unknown, credentials?: AppTicket) => Promise<any>;
   getAppTicket: () => Promise<AppTicket>;
   reissueAppTicket: () => Promise<AppTicket>;
   connect: (app?: AppTicket, url?: string) => Promise<void>;
@@ -55,9 +52,9 @@ const client: BpcClient = {
   ticketBuffer: 1000 * 30, // 30 seconds
   errorTimeout: 1000 * 60 * 5, // Five minutes
 
-  request: async (options: BpcRequestOptions, credentials?: AppTicket): Promise<any> => {
+  request: async (options: any, credentials?: AppTicket): Promise<any> => {
     const parsedUrl = Url.parse(module.exports.url);
-    const newOptions: BpcRequestOptions = {
+    const newOptions = {
       ...parsedUrl,
       ...options,
       headers: {
@@ -88,54 +85,21 @@ const client: BpcClient = {
       newOptions.headers.Authorization = hawkHeader.header;
     }
 
-    return new Promise((resolve, reject) => {
-      let req;
-      if (newOptions.protocol === 'http:') {
-        req = http.request(newOptions);
+    if (newOptions.payload) {
+      if (typeof newOptions.payload === 'object') {
+        newOptions.body = JSON.stringify(newOptions.payload);
       } else {
-        req = https.request(newOptions);
+        newOptions.body = newOptions.payload;
       }
+    }
+    const response: Response = await fetch(module.exports.url, newOptions);
+    if (!response.ok) {
+      const err = new Error(response.statusText || 'Unknown error');
+      throw Boom.boomify(err, { statusCode: response.status, data: response.body });
+    }
+    const data: any = await response.json();
 
-      if (newOptions.payload) {
-        if (typeof newOptions.payload === 'object') {
-          req.write(JSON.stringify(newOptions.payload));
-        } else {
-          req.write(newOptions.payload);
-        }
-      }
-
-      req.end();
-
-      req.on('response', (response: ServerResponse) => {
-        let data = '';
-
-        response.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        response.on('end', () => {
-          let parsedData;
-          if (data.length > 0) {
-            try {
-              parsedData = JSON.parse(data);
-            } catch (ex) {
-              parsedData = data;
-            }
-          }
-
-          if (response.statusCode > 300) {
-            const err = new Error(parsedData.message || data || 'Unknown error');
-            reject(Boom.boomify(err, { statusCode: response.statusCode, data: parsedData }));
-          } else {
-            resolve(parsedData);
-          }
-        });
-      });
-
-      req.on('error', (err) => {
-        reject(err);
-      });
-    });
+    return data;
   },
 
   getAppTicket: async (): Promise<AppTicket> => {
