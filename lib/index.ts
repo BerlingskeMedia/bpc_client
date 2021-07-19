@@ -90,7 +90,7 @@ const client: BpcClient = {
         newOptions.body = newOptions.payload;
       }
     }
-    const response: Response = await fetch(module.exports.url, newOptions);
+    const response: Response = await fetch(module.exports.url + newOptions.path, newOptions);
     if (!response.ok) {
       const err = new Error(response.statusText || 'Unknown error');
       throw Boom.boomify(err, { statusCode: response.status, data: response.body });
