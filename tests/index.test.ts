@@ -50,7 +50,7 @@ describe('client tests', () => {
       credentials,
       app: '124oeh12b21gfoi2bo3utfb21o',
     });
-    expect(fetch).toHaveBeenCalledWith('https://bdk.fake', {
+    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/getTicket', {
       ...fetchDefaults,
       ...options,
       body: '{"someValue":"test1"}',
@@ -80,7 +80,7 @@ describe('client tests', () => {
 
     // then
     expect(Hawk.client.header).not.toHaveBeenCalled();
-    expect(fetch).toHaveBeenCalledWith('http://bdk.fake', {
+    expect(fetch).toHaveBeenCalledWith('http://bdk.fake/getTicket', {
       ...fetchDefaults,
       ...options,
       body: 'some string to send',
@@ -166,7 +166,7 @@ describe('client tests', () => {
       credentials,
       app: 'test2',
     });
-    expect(fetch).toHaveBeenCalledWith('https://bdk.fake', {
+    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/ticket/app', {
       ...fetchDefaults,
       ...{ path: '/ticket/app', method: 'POST' },
       headers: {
@@ -198,7 +198,7 @@ describe('client tests', () => {
       credentials,
       app: 'test3',
     });
-    expect(fetch).toHaveBeenCalledWith('https://bdk.fake', {
+    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/ticket/reissue', {
       ...fetchDefaults,
       ...{ path: '/ticket/reissue', method: 'POST' },
       headers: {
@@ -236,7 +236,7 @@ describe('client tests', () => {
       },
       app: 'test_id',
     });
-    expect(fetch).toHaveBeenCalledWith('https://bdk.fake', {
+    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/ticket/app', {
       ...fetchDefaults,
       ...{ path: '/ticket/app', method: 'POST' },
       headers: {
