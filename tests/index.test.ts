@@ -1,7 +1,7 @@
 import Hawk from '@hapi/hawk';
 import { URL } from 'url';
 import Client, { AllowedAlgorithms, AppTicket } from '../lib/index';
-// eslint-disable-next-line
+
 jest.mock('node-fetch');
 // eslint-disable-next-line
 import fetch from 'node-fetch';
