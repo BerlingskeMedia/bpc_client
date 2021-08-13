@@ -64,7 +64,7 @@ const client: BpcClient = {
     const newOptions = {
       ...parsedOptions,
       ...options,
-      ...{pathname: options.path}, // backwards compatibility with legacy 'url'
+      ...{ pathname: options.path }, // backwards compatibility with legacy 'url'
       headers: {
         'Content-Type': 'application/json',
       },
