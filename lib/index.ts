@@ -3,7 +3,7 @@ import Hawk from '@hapi/hawk';
 import Joi from 'joi';
 import fetch, { Response } from 'node-fetch';
 import { EventEmitter } from 'events';
-import Url from 'url';
+import { URL } from 'url';
 
 export type AllowedAlgorithms = 'sha1' | 'sha256';
 
@@ -51,10 +51,20 @@ const client: BpcClient = {
   errorTimeout: 1000 * 60 * 5, // Five minutes
 
   request: async (options: any, credentials?: AppTicket, fullResponse = false): Promise<Response | any> => {
-    const parsedUrl = Url.parse(module.exports.url);
+    const parsedUrl = new URL(module.exports.url);
+    const parsedOptions = {
+      href: parsedUrl.href,
+      origin: parsedUrl.origin,
+      protocol: parsedUrl.protocol,
+      host: parsedUrl.host,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      pathname: parsedUrl.pathname,
+    };
     const newOptions = {
-      ...parsedUrl,
+      ...parsedOptions,
       ...options,
+      ...{ pathname: options.path }, // backwards compatibility with legacy 'url'
       headers: {
         'Content-Type': 'application/json',
       },
@@ -65,7 +75,7 @@ const client: BpcClient = {
     const appTicket: AppTicket | null = credentials || module.exports.appTicket || null;
 
     if (appTicket !== null && typeof appTicket === 'object' && Object.keys(appTicket).length > 1) {
-      const requestHref = Url.resolve(parsedUrl.href, newOptions.path || '');
+      const requestHref = (new URL(newOptions.path || '', parsedUrl.href)).href;
       let hawkHeader;
       try {
         hawkHeader = Hawk.client.header(
@@ -90,7 +100,7 @@ const client: BpcClient = {
         newOptions.body = newOptions.payload;
       }
     }
-    const response: Response = await fetch(module.exports.url + newOptions.path, newOptions);
+    const response: Response = await fetch(`${newOptions.origin}${newOptions.pathname}`, newOptions);
     if (!response.ok) {
       const err = new Error(response.statusText || 'Unknown error');
       throw Boom.boomify(err, { statusCode: response.status, data: response.body });
@@ -152,7 +162,7 @@ const client: BpcClient = {
     const newUrl = url || module.exports.url;
 
     try {
-      Url.parse(newUrl);
+      const validate = new URL(newUrl);
     } catch (ex) {
       throw new Error('BPC URL missing or invalid');
     }
