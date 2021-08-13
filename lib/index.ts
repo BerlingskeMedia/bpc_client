@@ -52,9 +52,19 @@ const client: BpcClient = {
 
   request: async (options: any, credentials?: AppTicket, fullResponse = false): Promise<Response | any> => {
     const parsedUrl = new URL(module.exports.url);
+    const parsedOptions = {
+      href: parsedUrl.href,
+      origin: parsedUrl.origin,
+      protocol: parsedUrl.protocol,
+      host: parsedUrl.host,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      pathname: parsedUrl.pathname,
+    };
     const newOptions = {
-      ...parsedUrl,
+      ...parsedOptions,
       ...options,
+      ...{pathname: options.path}, // backwards compatibility with legacy 'url'
       headers: {
         'Content-Type': 'application/json',
       },
@@ -90,7 +100,7 @@ const client: BpcClient = {
         newOptions.body = newOptions.payload;
       }
     }
-    const response: Response = await fetch(newOptions.href, newOptions);
+    const response: Response = await fetch(`${newOptions.origin}${newOptions.pathname}`, newOptions);
     if (!response.ok) {
       const err = new Error(response.statusText || 'Unknown error');
       throw Boom.boomify(err, { statusCode: response.status, data: response.body });

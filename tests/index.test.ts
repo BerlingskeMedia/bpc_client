@@ -1,24 +1,21 @@
 import Hawk from '@hapi/hawk';
+import { URL } from 'url';
 import Client, { AllowedAlgorithms, AppTicket } from '../lib/index';
-
+// eslint-disable-next-line
 jest.mock('node-fetch');
 // eslint-disable-next-line
 import fetch from 'node-fetch';
+
 const mockedFetch = fetch as any;
 jest.useFakeTimers();
 
 describe('client tests', () => {
   const expectedResult = { testValue: 'testCorrect' };
   const fetchDefaults = {
-    auth: null,
-    hash: null,
     host: 'bdk.fake',
     hostname: 'bdk.fake',
     pathname: '/',
     port: null,
-    query: null,
-    search: null,
-    slashes: true,
   };
 
   Hawk.client.header = jest.fn().mockReturnValue({ header: 'Hawk-generated-header' });
@@ -44,14 +41,13 @@ describe('client tests', () => {
     }));
     // when
     const response = await Client.request(options, credentials);
-
+    const url = new URL('https://bdk.fake/getTicket');
     // then
-    expect(Hawk.client.header).toHaveBeenCalledWith('https://bdk.fake/getTicket', 'GET', {
+    expect(Hawk.client.header).toHaveBeenCalledWith(url.href, 'GET', {
       credentials,
       app: '124oeh12b21gfoi2bo3utfb21o',
     });
-    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/getTicket', {
-      ...fetchDefaults,
+    expect(fetch).toHaveBeenCalledWith(url.href, {
       ...options,
       body: '{"someValue":"test1"}',
       headers: {
@@ -60,6 +56,11 @@ describe('client tests', () => {
       },
       href: 'https://bdk.fake/',
       protocol: 'https:',
+      host: 'bdk.fake',
+      hostname: 'bdk.fake',
+      origin: 'https://bdk.fake',
+      pathname: '/getTicket',
+      port: '',
     });
     expect(response).toMatchObject(expectedResult);
   });
@@ -89,6 +90,11 @@ describe('client tests', () => {
       },
       href: 'http://bdk.fake/',
       protocol: 'http:',
+      host: 'bdk.fake',
+      hostname: 'bdk.fake',
+      origin: 'http://bdk.fake',
+      pathname: '/getTicket',
+      port: '',
     });
     expect(response).toMatchObject(expectedResult);
   });
@@ -175,6 +181,11 @@ describe('client tests', () => {
       },
       href: 'https://bdk.fake/',
       protocol: 'https:',
+      host: 'bdk.fake',
+      hostname: 'bdk.fake',
+      origin: 'https://bdk.fake',
+      pathname: '/ticket/app',
+      port: '',
     });
     expect(result).toMatchObject(credentials);
     expect(Client.appTicket).toMatchObject(credentials);
@@ -207,6 +218,11 @@ describe('client tests', () => {
       },
       href: 'https://bdk.fake/',
       protocol: 'https:',
+      host: 'bdk.fake',
+      hostname: 'bdk.fake',
+      origin: 'https://bdk.fake',
+      pathname: '/ticket/reissue',
+      port: '',
     });
     expect(result).toMatchObject(credentials);
     expect(Client.appTicket).toMatchObject(credentials);
@@ -245,6 +261,11 @@ describe('client tests', () => {
       },
       href: 'https://bdk.fake/',
       protocol: 'https:',
+      host: 'bdk.fake',
+      hostname: 'bdk.fake',
+      origin: 'https://bdk.fake',
+      pathname: '/ticket/app',
+      port: '',
     });
     expect(Client.appTicket).toMatchObject(expectedResponse);
   });
