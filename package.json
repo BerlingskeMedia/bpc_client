@@ -1,6 +1,6 @@
 {
   "name": "bpc_client",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Node client to BPC",
   "main": "dist/index.js",
   "types": "dist/index.d.js",
