@@ -101,6 +101,8 @@ const client: BpcClient = {
       }
     }
     const response: Response = await fetch(`${newOptions.origin}${newOptions.pathname}`, newOptions);
+    console.log(newOptions);
+    console.log(response);
     if (!response.ok) {
       const err = new Error(response.statusText || 'Unknown error');
       throw Boom.boomify(err, { statusCode: response.status, data: response.body });
