@@ -32,7 +32,7 @@ describe('client tests', () => {
 
   it('should make https request with Authorization header and object payload', async () => {
     // given
-    const options = { path: '/getTicket', payload: { someValue: 'test1' } };
+    const options = { pathname: '/getTicket', payload: { someValue: 'test1' } };
     const credentials = { key: 'test1', id: 'test2' } as AppTicket;
     mockedFetch.mockReturnValueOnce(Promise.resolve({
       json: () => Promise.resolve(expectedResult),
@@ -40,7 +40,7 @@ describe('client tests', () => {
       ok: true,
     }));
     // when
-    const response = await Client.request(options, credentials);
+    const response = await Client.request(Client.url, options, credentials);
     const url = new URL('https://bdk.fake/getTicket');
     // then
     expect(Hawk.client.header).toHaveBeenCalledWith(url.href, 'GET', {
@@ -67,7 +67,7 @@ describe('client tests', () => {
 
   it('should make http request without Authorization header and string payload', async () => {
     // given
-    const options = { path: '/getTicket', payload: 'some string to send' };
+    const options = { pathname: '/getTicket', payload: 'some string to send' };
     const credentials = { key: 'test1' } as AppTicket;
     Client.url = 'http://bdk.fake';
     mockedFetch.mockReturnValueOnce(Promise.resolve({
@@ -77,7 +77,7 @@ describe('client tests', () => {
     }));
 
     // when
-    const response = await Client.request(options, credentials);
+    const response = await Client.request(Client.url, options, credentials);
 
     // then
     expect(Hawk.client.header).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe('client tests', () => {
 
   describe('should throw exceptions', () => {
     const options = {
-      path: '/getTicket',
+      pathname: '/getTicket',
       payload: {
         someValue: 'test1',
       },
@@ -116,7 +116,7 @@ describe('client tests', () => {
       }));
 
       // then
-      await expect(Client.request(options, {} as AppTicket)).rejects.toMatchObject({});
+      await expect(Client.request(Client.url, options, {} as AppTicket)).rejects.toMatchObject({});
     });
 
     it('if statusCode 4xx', async () => {
@@ -128,7 +128,7 @@ describe('client tests', () => {
       }));
 
       // then
-      await expect(Client.request(options, {} as AppTicket)).rejects.toMatchObject({
+      await expect(Client.request(Client.url, options, {} as AppTicket)).rejects.toMatchObject({
         isBoom: true,
         output: {
           statusCode: 404,
@@ -145,7 +145,7 @@ describe('client tests', () => {
       }));
 
       // then
-      await expect(Client.request(options, {} as AppTicket)).rejects.toMatchObject({
+      await expect(Client.request(Client.url, options, {} as AppTicket)).rejects.toMatchObject({
         isBoom: true,
         output: {
           statusCode: 500,
@@ -174,7 +174,7 @@ describe('client tests', () => {
     });
     expect(fetch).toHaveBeenCalledWith('https://bdk.fake/ticket/app', {
       ...fetchDefaults,
-      ...{ path: '/ticket/app', method: 'POST' },
+      ...{ pathname: '/ticket/app', method: 'POST' },
       headers: {
         'Content-Type': 'application/json',
         Authorization: 'Hawk-generated-header',
@@ -211,7 +211,7 @@ describe('client tests', () => {
     });
     expect(fetch).toHaveBeenCalledWith('https://bdk.fake/ticket/reissue', {
       ...fetchDefaults,
-      ...{ path: '/ticket/reissue', method: 'POST' },
+      ...{ pathname: '/ticket/reissue', method: 'POST' },
       headers: {
         'Content-Type': 'application/json',
         Authorization: 'Hawk-generated-header',
@@ -254,7 +254,7 @@ describe('client tests', () => {
     });
     expect(fetch).toHaveBeenCalledWith('https://bdk.fake/ticket/app', {
       ...fetchDefaults,
-      ...{ path: '/ticket/app', method: 'POST' },
+      ...{ pathname: '/ticket/app', method: 'POST' },
       headers: {
         'Content-Type': 'application/json',
         Authorization: 'Hawk-generated-header',
