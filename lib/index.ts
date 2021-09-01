@@ -23,12 +23,7 @@ export interface AppTicket {
 }
 
 export interface BpcClientInterface {
-  events: EventEmitter;
-  app: AppTicket;
   url: string;
-  appTicket: AppTicket | null;
-  ticketBuffer: number;
-  errorTimeout: number;
   request: (url: string, options: unknown, credentials?: AppTicket, fullResponse?: boolean) => Promise<any>;
   getAppTicket: () => Promise<AppTicket | null>;
   reissueAppTicket: () => Promise<AppTicket | null>;
@@ -36,21 +31,22 @@ export interface BpcClientInterface {
 }
 
 class BpcClient implements BpcClientInterface {
-  public events = new EventEmitter();
+  public url = process.env.BPC_URL || 'https://bpc.berlingskemedia.net';
 
-  public app = {
+  private events = new EventEmitter();
+
+  private app: AppTicket = {
     id: process.env.BPC_APP_ID || '',
     key: process.env.BPC_APP_KEY || '',
     algorithm: (process.env.BPC_ALGORITHM as AllowedAlgorithms) || 'sha256',
   };
 
-  public url = process.env.BPC_URL || 'https://bpc.berlingskemedia.net';
+  private appTicket: AppTicket | null = null;
 
-  public appTicket: AppTicket | null = null;
-
-  public ticketBuffer = 1000 * 30; // 30 seconds
-
-  public errorTimeout = 1000 * 60 * 5; // Five minutes
+  constructor(
+    private readonly ticketBuffer = 1000 * 30, // 30 seconds
+    private readonly errorTimeout = 1000 * 60 * 5, // Five minutes
+  ) {}
 
   public request = async (
     url: string, options: any, credentials?: AppTicket | null, fullResponse = false,
@@ -117,13 +113,9 @@ class BpcClient implements BpcClientInterface {
     return data;
   };
 
-  private requestBPC = async (
-    options: any, credentials?: AppTicket | null,
-  ): Promise<Response | any> => this.request(this.url, options, credentials);
-
   public getAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await this.requestBPC({ pathname: '/ticket/app', method: 'POST' }, this.app);
+      const result = await this.request(this.url, { pathname: '/ticket/app', method: 'POST' }, this.app);
       this.appTicket = result;
       this.events.emit('appticket');
       setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
@@ -140,10 +132,7 @@ class BpcClient implements BpcClientInterface {
 
   public reissueAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await this.requestBPC(
-        { pathname: '/ticket/reissue', method: 'POST' },
-        this.appTicket,
-      );
+      const result = await this.request(this.url, { pathname: '/ticket/reissue', method: 'POST' }, this.appTicket);
       this.appTicket = result;
       this.events.emit('appticket');
       setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
