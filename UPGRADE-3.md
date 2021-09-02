@@ -2,9 +2,12 @@
 
 BPC client interface has changed:
 - interface has been renamed to: `BpcClientInterface`
-- client properties: `ticketBuffer`, `errorTimeout` made private
-  but can be set using constructor parameters
-- client properties: `boom`, `hawk`, `joi` removed
+- client properties: `ticketBuffer`, `errorTimeout` has been made private but can be set using constructor parameters
+- client properties: `boom`, `hawk`, `joi` has been removed
+- `request` method signature changed
+  - `fullResponse` parameter has been removed - use `requestFullResponse` method instead
+  - use generics
+- `requestFullResponse` method has been added
 
 Additionally:
 - `options.path` is deprecated, use `options.pathname` instead

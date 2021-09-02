@@ -1,11 +1,12 @@
 import Boom from '@hapi/boom';
 import Hawk from '@hapi/hawk';
 import Joi from 'joi';
-import fetch, { Response } from 'node-fetch';
+import fetch, { RequestInit, Response } from 'node-fetch';
 import { EventEmitter } from 'events';
 import { URL } from 'url';
 
 export type AllowedAlgorithms = 'sha1' | 'sha256';
+type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
 const appSchema = Joi.object().keys({
   id: Joi.string().required(),
@@ -22,12 +23,26 @@ export interface AppTicket {
   algorithm: AllowedAlgorithms;
 }
 
+export interface BpcRequestOptions {
+  host?: string;
+  hostname?: string;
+  href?: string;
+  method?: RequestMethod;
+  origin?: string;
+  path?: string; // deprecated, use pathname instead
+  pathname?: string;
+  port?: string;
+  protocol?: string;
+  payload?: string | unknown;
+}
+
 export interface BpcClientInterface {
   events: EventEmitter;
   app: AppTicket;
   url: string;
   appTicket: AppTicket | null;
-  request: (options: unknown, credentials?: AppTicket, fullResponse?: boolean) => Promise<any>;
+  request: <R = any>(options: BpcRequestOptions, credentials?: AppTicket) => Promise<R>;
+  requestFullResponse: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<Response>;
   getAppTicket: () => Promise<AppTicket | null>;
   reissueAppTicket: () => Promise<AppTicket | null>;
   connect: (app?: AppTicket, url?: string) => Promise<void>;
@@ -51,11 +66,17 @@ export class BpcClient implements BpcClientInterface {
     private readonly errorTimeout = 1000 * 60 * 5, // Five minutes
   ) {}
 
-  public request = async (
-    options: any, credentials?: AppTicket | null, fullResponse = false,
-  ): Promise<Response | any> => {
-    const newOptions = {
-      ...options,
+  public request = async <R = any>(options: BpcRequestOptions, credentials?: AppTicket | null): Promise<R> => {
+    const response = await this.requestFullResponse(options, credentials);
+
+    return response.json();
+  };
+
+  public requestFullResponse = async (
+    options: BpcRequestOptions, credentials?: AppTicket | null,
+  ): Promise<Response> => {
+    const newOptions: RequestInit & { headers: Record<string, string>, method: RequestMethod } = {
+      method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -71,43 +92,41 @@ export class BpcClient implements BpcClientInterface {
       try {
         hawkHeader = Hawk.client.header(
           requestHref,
-          newOptions.method || 'GET',
+          newOptions.method,
           { credentials: appTicket, app: appTicket.app || this.app.id },
         );
       } catch (e) {
-        return new Error(`Hawk header: ${e.message}`);
+        throw new Error(`Hawk header: ${e.message}`);
       }
 
       newOptions.headers.Authorization = hawkHeader.header;
     }
 
-    if (newOptions.payload) {
-      if (typeof newOptions.payload === 'object') {
-        newOptions.body = JSON.stringify(newOptions.payload);
+    if (options.payload) {
+      if (typeof options.payload === 'object') {
+        newOptions.body = JSON.stringify(options.payload);
       } else {
-        newOptions.body = newOptions.payload;
+        newOptions.body = `${options.payload}`;
       }
     }
 
-    const response: Response = await fetch(requestHref, newOptions);
+    const response = await fetch(requestHref, newOptions);
     if (!response.ok) {
       const err = new Error(response.statusText || 'Unknown error');
       throw Boom.boomify(err, { statusCode: response.status, data: response.body });
     }
 
-    const data: any = await response.json();
-    if (fullResponse) {
-      return response;
-    }
-    return data;
+    return response;
   };
 
   public getAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await this.request({ pathname: '/ticket/app', method: 'POST' }, this.app);
+      const result = await this.request<AppTicket>({ pathname: '/ticket/app', method: 'POST' }, this.app);
       this.appTicket = result;
       this.events.emit('appticket');
-      setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
+      if (result.exp) {
+        setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
+      }
     } catch (ex) {
       console.error(ex);
       setTimeout(() => this.getAppTicket(), this.errorTimeout);
@@ -119,10 +138,12 @@ export class BpcClient implements BpcClientInterface {
 
   public reissueAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await this.request({ pathname: '/ticket/reissue', method: 'POST' }, this.appTicket);
+      const result = await this.request<AppTicket>({ pathname: '/ticket/reissue', method: 'POST' }, this.appTicket);
       this.appTicket = result;
       this.events.emit('appticket');
-      setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
+      if (result.exp) {
+        setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
+      }
     } catch (ex) {
       console.error(ex);
       setTimeout(() => this.getAppTicket(), this.errorTimeout);
@@ -161,13 +182,13 @@ export class BpcClient implements BpcClientInterface {
     }
   };
 
-  private getRequestHref = (options: any): string => {
+  private getRequestHref = (options: BpcRequestOptions): string => {
     const DEFAULT_PROTOCOL = 'https:';
     const port = options.port ? `:${options.port}` : '';
     const base = options.origin
       || (options.host ? `${options.host}${port}` : '')
       || (options.hostname ? `${options.protocol || DEFAULT_PROTOCOL}//${options.hostname}${port}` : '')
-      || this.url;
+      || this.url; // use BPC url if none provided
     // backwards compatibility with legacy 'url'
     const pathname = options.pathname || options.path || '';
 
