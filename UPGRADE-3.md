@@ -8,6 +8,7 @@ BPC client interface has changed:
   - `fullResponse` parameter has been removed - use `requestFullResponse` method instead
   - use generics
 - `requestFullResponse` method has been added
+- `getRsvp`, `getUserTicket`, `reissueUserTicket` methods have been added
 
 Additionally:
 - `options.path` is deprecated, use `options.pathname` instead

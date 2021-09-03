@@ -8,6 +8,19 @@ import { URL } from 'url';
 export type AllowedAlgorithms = 'sha1' | 'sha256';
 type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
+function getRequestHref(options: BpcRequestOptions, defaultUrl = ''): string {
+  const DEFAULT_PROTOCOL = 'https:';
+  const port = options.port ? `:${options.port}` : '';
+  const base = options.origin
+    || (options.host ? `${options.host}${port}` : '')
+    || (options.hostname ? `${options.protocol || DEFAULT_PROTOCOL}//${options.hostname}${port}` : '')
+    || defaultUrl;
+  // backwards compatibility with legacy 'url'
+  const pathname = options.pathname || options.path || '';
+
+  return options.href || (new URL(pathname, base)).href;
+}
+
 const appSchema = Joi.object().keys({
   id: Joi.string().required(),
   key: Joi.string().required(),
@@ -21,6 +34,22 @@ export interface AppTicket {
   exp?: number;
   scope?: string[];
   algorithm: AllowedAlgorithms;
+}
+
+export interface RsvpPayload {
+  app: string;
+  returnUrl?: string;
+  // Gigya
+  UID?: string;
+  UIDSignature?: string;
+  signatureTimestamp?: string;
+  // Google
+  id_token?: string;
+  access_token?: string;
+}
+
+export interface Rsvp {
+  rsvp: string;
 }
 
 export interface BpcRequestOptions {
@@ -81,7 +110,7 @@ export class BpcClient implements BpcClientInterface {
         'Content-Type': 'application/json',
       },
     };
-    const requestHref = this.getRequestHref(options);
+    const requestHref = getRequestHref(options, this.url);
 
     // In case we want a request completely without any credentials,
     // use {} as the credentials parameter to this function
@@ -182,18 +211,22 @@ export class BpcClient implements BpcClientInterface {
     }
   };
 
-  private getRequestHref = (options: BpcRequestOptions): string => {
-    const DEFAULT_PROTOCOL = 'https:';
-    const port = options.port ? `:${options.port}` : '';
-    const base = options.origin
-      || (options.host ? `${options.host}${port}` : '')
-      || (options.hostname ? `${options.protocol || DEFAULT_PROTOCOL}//${options.hostname}${port}` : '')
-      || this.url; // use BPC url if none provided
-    // backwards compatibility with legacy 'url'
-    const pathname = options.pathname || options.path || '';
+  public getRsvp = async (payload: RsvpPayload): Promise<Rsvp> => this.request<Rsvp>({
+    pathname: '/rsvp',
+    method: 'POST',
+    payload,
+  });
 
-    return options.href || (new URL(pathname, base)).href;
-  };
+  public getUserTicket = async (payload: Rsvp): Promise<AppTicket> => this.request<AppTicket>({
+    pathname: '/ticket/user',
+    method: 'POST',
+    payload,
+  });
+
+  public reissueUserTicket = async (oldTicket: AppTicket): Promise<AppTicket> => this.request<AppTicket>({
+    pathname: '/ticket/reissue',
+    method: 'POST',
+  }, oldTicket);
 }
 
 const client = new BpcClient();
