@@ -156,7 +156,7 @@ Makes https request to BPC [/rsvp](https://github.com/BerlingskeMedia/bpc/blob/m
 
 Makes https request to BPC [/ticket/user](https://github.com/BerlingskeMedia/bpc/blob/master/doc/API.md#post-ticketuser)
 
-### [_async_] *reissueUserTicket* (oldTicket)
+### [_async_] *getReissuedTicket* (oldTicket)
 
 Makes https request to BPC [/ticket/reissue](https://github.com/BerlingskeMedia/bpc/blob/master/doc/API.md#post-ticketreissue)
 

@@ -376,7 +376,7 @@ describe('client tests', () => {
     }));
 
     // when
-    const result = await Client.reissueUserTicket(oldTicket);
+    const result = await Client.getReissuedTicket(oldTicket);
 
     // then
     expect(Hawk.client.header).toHaveBeenCalledWith('https://bdk.fake/ticket/reissue', 'POST', {

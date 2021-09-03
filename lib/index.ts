@@ -167,7 +167,7 @@ export class BpcClient implements BpcClientInterface {
 
   public reissueAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await this.request<AppTicket>({ pathname: '/ticket/reissue', method: 'POST' }, this.appTicket);
+      const result = await this.getReissuedTicket(this.appTicket);
       this.appTicket = result;
       this.events.emit('appticket');
       if (result.exp) {
@@ -223,7 +223,7 @@ export class BpcClient implements BpcClientInterface {
     payload,
   });
 
-  public reissueUserTicket = async (oldTicket: AppTicket): Promise<AppTicket> => this.request<AppTicket>({
+  public getReissuedTicket = async (oldTicket: AppTicket | null): Promise<AppTicket> => this.request<AppTicket>({
     pathname: '/ticket/reissue',
     method: 'POST',
   }, oldTicket);
