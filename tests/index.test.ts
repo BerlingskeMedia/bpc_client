@@ -155,7 +155,7 @@ describe('client tests', () => {
       // given
       mockedFetch.mockReturnValueOnce(Promise.resolve({
         json: () => Promise.resolve(),
-        status: 304,
+        status: 304, // it should not happen as node-fetch should follow redirects
         ok: false,
       }));
 
@@ -166,16 +166,31 @@ describe('client tests', () => {
     it('if statusCode 4xx', async () => {
       // given
       mockedFetch.mockReturnValueOnce(Promise.resolve({
-        json: () => Promise.reject(),
-        status: 404,
+        json: () => Promise.resolve({
+          message: 'User is not allowed to replace subscription',
+          reasons: [
+            {
+              code: 'multiple_subscriptions',
+            },
+          ],
+        }),
+        status: 403,
         ok: false,
       }));
 
       // then
       await expect(Client.request(options, {} as AppTicket)).rejects.toMatchObject({
+        data: {
+          message: 'User is not allowed to replace subscription',
+          reasons: [
+            {
+              code: 'multiple_subscriptions',
+            },
+          ],
+        },
         isBoom: true,
         output: {
-          statusCode: 404,
+          statusCode: 403,
         },
       });
     });
@@ -183,13 +198,13 @@ describe('client tests', () => {
     it('if statusCode 5xx', async () => {
       // given
       mockedFetch.mockReturnValueOnce(Promise.resolve({
-        json: () => Promise.reject(),
+        json: () => Promise.resolve('Custom error message'),
         status: 500,
         ok: false,
       }));
 
-      // then
       await expect(Client.request(options, {} as AppTicket)).rejects.toMatchObject({
+        data: 'Custom error message',
         isBoom: true,
         output: {
           statusCode: 500,

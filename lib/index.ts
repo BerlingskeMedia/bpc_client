@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 import { URL } from 'url';
 
 export type AllowedAlgorithms = 'sha1' | 'sha256';
-type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
+export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT' | string; // string for backward compatibility
 
 function getRequestHref(options: BpcRequestOptions, defaultUrl = ''): string {
   const DEFAULT_PROTOCOL = 'https:';
@@ -98,7 +98,13 @@ export class BpcClient implements BpcClientInterface {
   public request = async <R = any>(options: BpcRequestOptions, credentials?: AppTicket | null): Promise<R> => {
     const response = await this.requestFullResponse(options, credentials);
 
-    return response.json();
+    const parsedData = await response.json();
+    if (!response.ok) {
+      const err = new Error(parsedData.message || response.body || 'Unknown error');
+      throw Boom.boomify(err, { statusCode: response.status, data: parsedData });
+    }
+
+    return parsedData;
   };
 
   public requestFullResponse = async (
@@ -139,13 +145,7 @@ export class BpcClient implements BpcClientInterface {
       }
     }
 
-    const response = await fetch(requestHref, newOptions);
-    if (!response.ok) {
-      const err = new Error(response.statusText || 'Unknown error');
-      throw Boom.boomify(err, { statusCode: response.status, data: response.body });
-    }
-
-    return response;
+    return fetch(requestHref, newOptions);
   };
 
   public getAppTicket = async (): Promise<AppTicket | null> => {
