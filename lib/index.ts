@@ -1,11 +1,25 @@
 import Boom from '@hapi/boom';
 import Hawk from '@hapi/hawk';
 import Joi from 'joi';
-import fetch, { Response } from 'node-fetch';
+import fetch, { RequestInit, Response } from 'node-fetch';
 import { EventEmitter } from 'events';
 import { URL } from 'url';
 
 export type AllowedAlgorithms = 'sha1' | 'sha256';
+export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT' | string; // string for backward compatibility
+
+function getRequestHref(options: BpcRequestOptions, defaultUrl = ''): string {
+  const DEFAULT_PROTOCOL = 'https:';
+  const port = options.port ? `:${options.port}` : '';
+  const base = options.origin
+    || (options.host ? `${options.host}${port}` : '')
+    || (options.hostname ? `${options.protocol || DEFAULT_PROTOCOL}//${options.hostname}${port}` : '')
+    || defaultUrl;
+  // backwards compatibility with legacy 'url'
+  const pathname = options.pathname || options.path || '';
+
+  return options.href || (new URL(pathname, base)).href;
+}
 
 const appSchema = Joi.object().keys({
   id: Joi.string().required(),
@@ -22,136 +36,159 @@ export interface AppTicket {
   algorithm: AllowedAlgorithms;
 }
 
-export interface BpcClient {
+export interface RsvpPayload {
+  app: string;
+  returnUrl?: string;
+  // Gigya
+  UID?: string;
+  UIDSignature?: string;
+  signatureTimestamp?: string;
+  // Google
+  id_token?: string;
+  access_token?: string;
+}
+
+export interface Rsvp {
+  rsvp: string;
+}
+
+export interface BpcRequestOptions {
+  host?: string;
+  hostname?: string;
+  href?: string;
+  method?: RequestMethod;
+  origin?: string;
+  path?: string; // deprecated, use pathname instead
+  pathname?: string;
+  port?: string;
+  protocol?: string;
+  payload?: string | unknown;
+}
+
+export interface BpcClientInterface {
   events: EventEmitter;
   app: AppTicket;
   url: string;
   appTicket: AppTicket | null;
-  ticketBuffer: number;
-  errorTimeout: number;
-  request: (options: unknown, credentials?: AppTicket, fullResponse?: boolean) => Promise<any>;
-  getAppTicket: () => Promise<AppTicket>;
-  reissueAppTicket: () => Promise<AppTicket>;
+  request: <R = any>(options: BpcRequestOptions, credentials?: AppTicket) => Promise<R>;
+  requestFullResponse: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<Response>;
+  getAppTicket: () => Promise<AppTicket | null>;
+  reissueAppTicket: () => Promise<AppTicket | null>;
   connect: (app?: AppTicket, url?: string) => Promise<void>;
-  boom: unknown,
-  hawk: unknown,
-  joi: unknown,
 }
 
-const client: BpcClient = {
-  events: new EventEmitter(),
-  app: {
+export class BpcClient implements BpcClientInterface {
+  public app: AppTicket = {
     id: process.env.BPC_APP_ID || '',
     key: process.env.BPC_APP_KEY || '',
     algorithm: (process.env.BPC_ALGORITHM as AllowedAlgorithms) || 'sha256',
-  },
-  url: process.env.BPC_URL || 'https://bpc.berlingskemedia.net',
-  appTicket: null,
-  ticketBuffer: 1000 * 30, // 30 seconds
-  errorTimeout: 1000 * 60 * 5, // Five minutes
+  };
 
-  request: async (options: any, credentials?: AppTicket, fullResponse = false): Promise<Response | any> => {
-    const parsedUrl = new URL(module.exports.url);
-    const parsedOptions = {
-      href: parsedUrl.href,
-      origin: parsedUrl.origin,
-      protocol: parsedUrl.protocol,
-      host: parsedUrl.host,
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port,
-      pathname: parsedUrl.pathname,
-    };
-    const newOptions = {
-      ...parsedOptions,
-      ...options,
-      ...{ pathname: options.path }, // backwards compatibility with legacy 'url'
+  public appTicket: AppTicket | null = null;
+
+  public events = new EventEmitter();
+
+  public url = process.env.BPC_URL || 'https://bpc.berlingskemedia.net';
+
+  constructor(
+    private readonly ticketBuffer = 1000 * 30, // 30 seconds
+    private readonly errorTimeout = 1000 * 60 * 5, // Five minutes
+  ) {}
+
+  public request = async <R = any>(options: BpcRequestOptions, credentials?: AppTicket | null): Promise<R> => {
+    const response = await this.requestFullResponse(options, credentials);
+
+    const parsedData = await response.json();
+    if (!response.ok) {
+      const err = new Error(parsedData.message || response.body || 'Unknown error');
+      throw Boom.boomify(err, { statusCode: response.status, data: parsedData });
+    }
+
+    return parsedData;
+  };
+
+  public requestFullResponse = async (
+    options: BpcRequestOptions, credentials?: AppTicket | null,
+  ): Promise<Response> => {
+    const newOptions: RequestInit & { headers: Record<string, string>, method: RequestMethod } = {
+      method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     };
+    const requestHref = getRequestHref(options, this.url);
 
     // In case we want a request completely without any credentials,
     // use {} as the credentials parameter to this function
-    const appTicket: AppTicket | null = credentials || module.exports.appTicket || null;
+    const appTicket: AppTicket | null = credentials || this.appTicket || null;
 
     if (appTicket !== null && typeof appTicket === 'object' && Object.keys(appTicket).length > 1) {
-      const requestHref = (new URL(newOptions.path || '', parsedUrl.href)).href;
       let hawkHeader;
       try {
         hawkHeader = Hawk.client.header(
           requestHref,
-          newOptions.method || 'GET',
-          { credentials: appTicket, app: appTicket.app || module.exports.app.id },
+          newOptions.method,
+          { credentials: appTicket, app: appTicket.app || this.app.id },
         );
       } catch (e) {
-        return new Error(`Hawk header: ${e.message}`);
+        throw new Error(`Hawk header: ${e.message}`);
       }
 
-      if (!newOptions.headers) {
-        newOptions.headers = {};
-      }
       newOptions.headers.Authorization = hawkHeader.header;
     }
 
-    if (newOptions.payload) {
-      if (typeof newOptions.payload === 'object') {
-        newOptions.body = JSON.stringify(newOptions.payload);
+    if (options.payload) {
+      if (typeof options.payload === 'object') {
+        newOptions.body = JSON.stringify(options.payload);
       } else {
-        newOptions.body = newOptions.payload;
+        newOptions.body = `${options.payload}`;
       }
     }
-    const response: Response = await fetch(`${newOptions.origin}${newOptions.pathname}`, newOptions);
-    console.log(newOptions);
-    console.log(response);
-    if (!response.ok) {
-      const err = new Error(response.statusText || 'Unknown error');
-      throw Boom.boomify(err, { statusCode: response.status, data: response.body });
-    }
-    const data: any = await response.json();
 
-    if (fullResponse) {
-      return response;
-    }
-    return data;
-  },
+    return fetch(requestHref, newOptions);
+  };
 
-  getAppTicket: async (): Promise<AppTicket> => {
+  public getAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await module.exports.request({ path: '/ticket/app', method: 'POST' }, module.exports.app);
-      module.exports.appTicket = result;
-      module.exports.events.emit('appticket');
-      setTimeout(() => module.exports.reissueAppTicket(), result.exp - Date.now() - module.exports.ticketBuffer);
-      return result;
+      const result = await this.request<AppTicket>({ pathname: '/ticket/app', method: 'POST' }, this.app);
+      this.appTicket = result;
+      this.events.emit('appticket');
+      if (result.exp) {
+        setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
+      }
     } catch (ex) {
       console.error(ex);
-      setTimeout(() => module.exports.getAppTicket(), module.exports.errorTimeout);
-      module.exports.appTicket = null;
-      return module.exports.appTicket;
+      setTimeout(() => this.getAppTicket(), this.errorTimeout);
+      this.appTicket = null;
     }
-  },
 
-  reissueAppTicket: async (): Promise<AppTicket> => {
+    return this.appTicket;
+  };
+
+  public reissueAppTicket = async (): Promise<AppTicket | null> => {
     try {
-      const result = await module.exports.request(
-        { path: '/ticket/reissue', method: 'POST' },
-        module.exports.appTicket,
-      );
-      module.exports.appTicket = result;
-      module.exports.events.emit('appticket');
-      setTimeout(() => module.exports.reissueAppTicket(), result.exp - Date.now() - module.exports.ticketBuffer);
-      return result;
+      if (!this.appTicket) {
+        throw Error('No app ticket to reissue. Try to get a new one.');
+      }
+      const result = await this.getReissuedTicket(this.appTicket);
+      this.appTicket = result;
+      this.events.emit('appticket');
+      if (result.exp) {
+        setTimeout(() => this.reissueAppTicket(), result.exp - Date.now() - this.ticketBuffer);
+      }
     } catch (ex) {
       console.error(ex);
-      setTimeout(() => module.exports.getAppTicket(), module.exports.errorTimeout);
-      module.exports.appTicket = null;
-      return module.exports.appTicket;
+      setTimeout(() => this.getAppTicket(), this.errorTimeout);
+      this.appTicket = null;
     }
-  },
 
-  connect: async (app: AppTicket = client.app, url?: string): Promise<void> => {
+    return this.appTicket;
+  };
+
+  public connect = async (app?: AppTicket, url?: string): Promise<void> => {
     const newApp = {
-      ...module.exports.app,
-      ...app,
+      ...this.app,
+      ...(app || {}),
     };
 
     const appValidateResult = appSchema.validate(newApp);
@@ -159,9 +196,9 @@ const client: BpcClient = {
       throw appValidateResult.error;
     }
 
-    module.exports.app = newApp;
+    this.app = newApp;
 
-    const newUrl = url || module.exports.url;
+    const newUrl = url || this.url;
 
     try {
       const validate = new URL(newUrl);
@@ -169,21 +206,31 @@ const client: BpcClient = {
       throw new Error('BPC URL missing or invalid');
     }
 
-    module.exports.url = newUrl;
+    this.url = newUrl;
 
-    const result = await module.exports.getAppTicket();
+    const result = await this.getAppTicket();
     if (result) {
-      module.exports.events.emit('ready');
+      this.events.emit('ready');
     }
-  },
+  };
 
-  boom: Boom,
+  public getRsvp = async (payload: RsvpPayload): Promise<Rsvp> => this.request<Rsvp>({
+    pathname: '/rsvp',
+    method: 'POST',
+    payload,
+  });
 
-  hawk: Hawk,
+  public getUserTicket = async (payload: Rsvp): Promise<AppTicket> => this.request<AppTicket>({
+    pathname: '/ticket/user',
+    method: 'POST',
+    payload,
+  });
 
-  joi: Joi,
+  public getReissuedTicket = async (oldTicket: AppTicket): Promise<AppTicket> => this.request<AppTicket>({
+    pathname: '/ticket/reissue',
+    method: 'POST',
+  }, oldTicket);
+}
 
-};
-
+const client = new BpcClient();
 export default client;
-module.exports = client;

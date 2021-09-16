@@ -138,11 +138,27 @@ Both arguments `app` and `url` are optional and can be set beforehand using ENV 
 
 ### [_async_] *request* (options, credentials)
 
-Makes HTTP requests to BPC.
+Makes HTTP requests to BPC and returns JSON.
 
-Argument `options` are compatible to Nodes [http.request(options[, callback])](https://nodejs.org/dist/latest-v8.x/docs/api/http.html#http_http_request_options_callback)
+Argument `options` - check the interface: [BpcRequestOptions](./lib/index.ts#L55)
 
 Argument `credentials` [OPTIONAL] = a BPC ticket. If not provided, the app ticket will used.
+
+### [_async_] *requestFullResponse* (options, credentials)
+
+The same as above but returns full response object.
+
+### [_async_] *getRsvp* (payload)
+
+Makes https request to BPC [/rsvp](https://github.com/BerlingskeMedia/bpc/blob/master/doc/API.md#post-rsvp)
+
+### [_async_] *getUserTicket* (payload)
+
+Makes https request to BPC [/ticket/user](https://github.com/BerlingskeMedia/bpc/blob/master/doc/API.md#post-ticketuser)
+
+### [_async_] *getReissuedTicket* (oldTicket)
+
+Makes https request to BPC [/ticket/reissue](https://github.com/BerlingskeMedia/bpc/blob/master/doc/API.md#post-ticketreissue)
 
 ### [_EventEmitter_] *events*
 
