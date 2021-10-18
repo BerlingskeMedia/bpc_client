@@ -166,6 +166,9 @@ export class BpcClient implements BpcClientInterface {
   public getAppTicket = async (): Promise<AppTicket | null> => {
     try {
       const result = await this.request<AppTicket>({ pathname: '/ticket/app', method: 'POST' }, this.app);
+      if (result === undefined) {
+        throw Boom.boomify(new Error('Missing app ticket'));
+      }
       this.appTicket = result;
       this.events.emit('appticket');
       if (result.exp) {
@@ -233,18 +236,33 @@ export class BpcClient implements BpcClientInterface {
     pathname: '/rsvp',
     method: 'POST',
     payload,
+  }).then((result) => {
+    if (result === undefined) {
+      throw Boom.boomify(new Error('Missing rsvp'));
+    }
+    return result;
   });
 
   public getUserTicket = async (payload: Rsvp): Promise<AppTicket> => this.request<AppTicket>({
     pathname: '/ticket/user',
     method: 'POST',
     payload,
+  }).then((result) => {
+    if (result === undefined) {
+      throw Boom.boomify(new Error('Missing app ticket'));
+    }
+    return result;
   });
 
   public getReissuedTicket = async (oldTicket: AppTicket): Promise<AppTicket> => this.request<AppTicket>({
     pathname: '/ticket/reissue',
     method: 'POST',
-  }, oldTicket);
+  }, oldTicket).then((result) => {
+    if (result === undefined) {
+      throw Boom.boomify(new Error('Missing app ticket'));
+    }
+    return result;
+  });
 }
 
 const client = new BpcClient();
