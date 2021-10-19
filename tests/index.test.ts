@@ -69,7 +69,7 @@ describe('client tests', () => {
     // given
     const credentials = { key: 'test1', id: 'test2' } as AppTicket;
     mockedFetch.mockReturnValueOnce(Promise.resolve({
-      json: () => Promise.resolve(expectedResult),
+      text: () => Promise.resolve(JSON.stringify(expectedResult)),
       status: 200,
       ok: true,
     }));
@@ -95,7 +95,7 @@ describe('client tests', () => {
     const options = { path: '/getTicket', payload: { someValue: 'test1' } };
     const credentials = { key: 'test1', id: 'test2' } as AppTicket;
     mockedFetch.mockReturnValueOnce(Promise.resolve({
-      json: () => Promise.resolve(expectedResult),
+      text: () => Promise.resolve(JSON.stringify(expectedResult)),
       status: 200,
       ok: true,
     }));
@@ -123,7 +123,7 @@ describe('client tests', () => {
     const credentials = { key: 'test1' } as AppTicket;
     Client.url = 'http://bdk.fake';
     mockedFetch.mockReturnValueOnce(Promise.resolve({
-      json: () => Promise.resolve(expectedResult),
+      text: () => Promise.resolve(JSON.stringify(expectedResult)),
       status: 200,
       ok: true,
     }));
@@ -143,6 +143,61 @@ describe('client tests', () => {
     expect(response).toMatchObject(expectedResult);
   });
 
+  it('should return undefined if empty body', async () => {
+    // given
+    const options = { path: '/randomPath', payload: { someValue: 'test1' } };
+    const credentials = { key: 'test1', id: 'test2' } as AppTicket;
+    mockedFetch.mockReturnValueOnce(Promise.resolve({
+      text: () => Promise.resolve(''),
+      status: 200,
+      ok: true,
+    }));
+    // when
+    const response = await Client.request(options, credentials);
+    // then
+    expect(Hawk.client.header).toHaveBeenCalledWith('https://bdk.fake/randomPath', 'GET', {
+      credentials,
+      app: '124oeh12b21gfoi2bo3utfb21o',
+    });
+    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/randomPath', {
+      body: JSON.stringify({ someValue: 'test1' }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Hawk-generated-header',
+      },
+      method: 'GET',
+    });
+    expect(response).toBeUndefined();
+  });
+
+  it('should set custom header for request', async () => {
+    // given
+    const options = { path: '/randomPath', payload: { someValue: 'test1' }, headers: { source: 'gsp' } };
+    const credentials = { key: 'test1', id: 'test2' } as AppTicket;
+    mockedFetch.mockReturnValueOnce(Promise.resolve({
+      text: () => Promise.resolve(''),
+      status: 200,
+      ok: true,
+    }));
+    // when
+    const response = await Client.request(options, credentials);
+    // then
+    expect(Hawk.client.header).toHaveBeenCalledWith('https://bdk.fake/randomPath', 'GET', {
+      credentials,
+      app: '124oeh12b21gfoi2bo3utfb21o',
+    });
+    expect(fetch).toHaveBeenCalledWith('https://bdk.fake/randomPath', {
+      body: JSON.stringify({ someValue: 'test1' }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Hawk-generated-header',
+        source: 'gsp',
+      },
+      method: 'GET',
+    });
+    expect(response).toBeUndefined();
+  });
+
   describe('should throw exceptions', () => {
     const options = {
       path: '/getTicket',
@@ -154,7 +209,7 @@ describe('client tests', () => {
     it('if statusCode > 300', async () => {
       // given
       mockedFetch.mockReturnValueOnce(Promise.resolve({
-        json: () => Promise.resolve(),
+        text: () => Promise.resolve(),
         status: 304, // it should not happen as node-fetch should follow redirects
         ok: false,
       }));
@@ -166,14 +221,14 @@ describe('client tests', () => {
     it('if statusCode 4xx', async () => {
       // given
       mockedFetch.mockReturnValueOnce(Promise.resolve({
-        json: () => Promise.resolve({
+        text: () => Promise.resolve(JSON.stringify({
           message: 'User is not allowed to replace subscription',
           reasons: [
             {
               code: 'multiple_subscriptions',
             },
           ],
-        }),
+        })),
         status: 403,
         ok: false,
       }));
@@ -198,7 +253,7 @@ describe('client tests', () => {
     it('if statusCode 5xx', async () => {
       // given
       mockedFetch.mockReturnValueOnce(Promise.resolve({
-        json: () => Promise.resolve('Custom error message'),
+        text: () => Promise.resolve('Custom error message'),
         status: 500,
         ok: false,
       }));
@@ -218,7 +273,7 @@ describe('client tests', () => {
     const credentials = { key: 'test1', id: 'test2' };
     Client.app = credentials as AppTicket;
     mockedFetch.mockReturnValue(Promise.resolve({
-      json: () => Promise.resolve({ ...credentials, exp: Date.now() + 10000 }),
+      text: () => Promise.resolve(JSON.stringify({ ...credentials, exp: Date.now() + 10000 })),
       status: 200,
       ok: true,
     }));
@@ -247,7 +302,7 @@ describe('client tests', () => {
     const credentials = { key: 'test1', id: 'test2', app: 'test3' };
     Client.appTicket = credentials as AppTicket;
     mockedFetch.mockReturnValue(Promise.resolve({
-      json: () => Promise.resolve({ ...credentials, exp: Date.now() + 10000 }),
+      text: () => Promise.resolve(JSON.stringify({ ...credentials, exp: Date.now() + 10000 })),
       status: 200,
       ok: true,
     }));
@@ -275,7 +330,7 @@ describe('client tests', () => {
     // given
     const expectedResponse = { id: 'test_id', key: 'test_key', exp: Date.now() + 10000 };
     mockedFetch.mockReturnValue(Promise.resolve({
-      json: () => Promise.resolve(expectedResponse),
+      text: () => Promise.resolve(JSON.stringify(expectedResponse)),
       status: 200,
       ok: true,
     }));
@@ -320,7 +375,7 @@ describe('client tests', () => {
     const credentials = { key: 'test1', id: 'test2', app: 'test3' };
     Client.appTicket = credentials as AppTicket;
     mockedFetch.mockReturnValue(Promise.resolve({
-      json: () => Promise.resolve(rsvp),
+      text: () => Promise.resolve(JSON.stringify(rsvp)),
       status: 200,
       ok: true,
     }));
@@ -357,7 +412,7 @@ describe('client tests', () => {
     const credentials = { key: 'test1', id: 'test2', app: 'test3' };
     Client.appTicket = credentials as AppTicket;
     mockedFetch.mockReturnValue(Promise.resolve({
-      json: () => Promise.resolve(expectedResult),
+      text: () => Promise.resolve(JSON.stringify(expectedResult)),
       status: 200,
       ok: true,
     }));
@@ -385,7 +440,7 @@ describe('client tests', () => {
     // given
     const oldTicket: AppTicket = { key: 'test1', id: 'test2', algorithm: 'sha256' };
     mockedFetch.mockReturnValue(Promise.resolve({
-      json: () => Promise.resolve(expectedResult),
+      text: () => Promise.resolve(JSON.stringify(expectedResult)),
       status: 200,
       ok: true,
     }));

@@ -63,6 +63,8 @@ export interface BpcRequestOptions {
   port?: string;
   protocol?: string;
   payload?: string | unknown;
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  headers?: object,
 }
 
 export interface BpcClientInterface {
@@ -70,7 +72,7 @@ export interface BpcClientInterface {
   app: AppTicket;
   url: string;
   appTicket: AppTicket | null;
-  request: <R = any>(options: BpcRequestOptions, credentials?: AppTicket) => Promise<R>;
+  request: <R = any>(options: BpcRequestOptions, credentials?: AppTicket) => Promise<R | undefined>;
   requestFullResponse: (options: BpcRequestOptions, credentials?: AppTicket) => Promise<Response>;
   getAppTicket: () => Promise<AppTicket | null>;
   reissueAppTicket: () => Promise<AppTicket | null>;
@@ -95,10 +97,22 @@ export class BpcClient implements BpcClientInterface {
     private readonly errorTimeout = 1000 * 60 * 5, // Five minutes
   ) {}
 
-  public request = async <R = any>(options: BpcRequestOptions, credentials?: AppTicket | null): Promise<R> => {
+  public request = async <R = any>(
+    options: BpcRequestOptions,
+    credentials?: AppTicket | null,
+  ): Promise<R | undefined> => {
     const response = await this.requestFullResponse(options, credentials);
 
-    const parsedData = await response.json();
+    let parsedData;
+    const rawData = await response.text();
+    if (rawData.length) {
+      try {
+        parsedData = JSON.parse(rawData);
+      } catch (e) {
+        const err = new Error(rawData || 'Unknown error');
+        throw Boom.boomify(err, { statusCode: response.status, data: rawData });
+      }
+    }
     if (!response.ok) {
       const err = new Error(parsedData.message || response.body || 'Unknown error');
       throw Boom.boomify(err, { statusCode: response.status, data: parsedData });
@@ -114,6 +128,7 @@ export class BpcClient implements BpcClientInterface {
       method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...options.headers,
       },
     };
     const requestHref = getRequestHref(options, this.url);
@@ -151,6 +166,9 @@ export class BpcClient implements BpcClientInterface {
   public getAppTicket = async (): Promise<AppTicket | null> => {
     try {
       const result = await this.request<AppTicket>({ pathname: '/ticket/app', method: 'POST' }, this.app);
+      if (result === undefined) {
+        throw Boom.boomify(new Error('Missing app ticket'));
+      }
       this.appTicket = result;
       this.events.emit('appticket');
       if (result.exp) {
@@ -218,18 +236,33 @@ export class BpcClient implements BpcClientInterface {
     pathname: '/rsvp',
     method: 'POST',
     payload,
+  }).then((result) => {
+    if (result === undefined) {
+      throw Boom.boomify(new Error('Missing rsvp'));
+    }
+    return result;
   });
 
   public getUserTicket = async (payload: Rsvp): Promise<AppTicket> => this.request<AppTicket>({
     pathname: '/ticket/user',
     method: 'POST',
     payload,
+  }).then((result) => {
+    if (result === undefined) {
+      throw Boom.boomify(new Error('Missing app ticket'));
+    }
+    return result;
   });
 
   public getReissuedTicket = async (oldTicket: AppTicket): Promise<AppTicket> => this.request<AppTicket>({
     pathname: '/ticket/reissue',
     method: 'POST',
-  }, oldTicket);
+  }, oldTicket).then((result) => {
+    if (result === undefined) {
+      throw Boom.boomify(new Error('Missing app ticket'));
+    }
+    return result;
+  });
 }
 
 const client = new BpcClient();
