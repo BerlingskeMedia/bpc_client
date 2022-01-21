@@ -4,6 +4,7 @@ import Client, {
 } from '../lib/index';
 
 jest.mock('node-fetch');
+jest.mock('timeout-signal');
 // eslint-disable-next-line
 import fetch, { RequestInit } from 'node-fetch';
 
