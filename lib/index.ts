@@ -4,6 +4,7 @@ import Joi from 'joi';
 import fetch, { RequestInit, Response } from 'node-fetch';
 import { EventEmitter } from 'events';
 import { URL } from 'url';
+import timeoutSignal from 'timeout-signal';
 
 export type AllowedAlgorithms = 'sha1' | 'sha256';
 export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT' | string; // string for backward compatibility
@@ -95,6 +96,7 @@ export class BpcClient implements BpcClientInterface {
   constructor(
     private readonly ticketBuffer = 1000 * 30, // 30 seconds
     private readonly errorTimeout = 1000 * 60 * 5, // Five minutes
+    private readonly requestTimeout = 1000 * 30, // 30 seconds
   ) {}
 
   public request = async <R = any>(
@@ -159,8 +161,19 @@ export class BpcClient implements BpcClientInterface {
         newOptions.body = `${options.payload}`;
       }
     }
+    const signal = timeoutSignal(this.requestTimeout);
 
-    return fetch(requestHref, newOptions);
+    let response = {} as Response;
+    try {
+      response = await fetch(requestHref, { ...newOptions, signal });
+      timeoutSignal.clear(signal);
+    } catch (error) {
+      if (error.message === 'The user aborted a request.') {
+        console.error(`BPC request was aborted due to a timeout - ${requestHref}`);
+      }
+      throw error;
+    }
+    return response;
   };
 
   public getAppTicket = async (): Promise<AppTicket | null> => {
