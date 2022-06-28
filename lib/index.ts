@@ -94,8 +94,8 @@ export class BpcClient implements BpcClientInterface {
   public url = process.env.BPC_URL || 'https://bpc.berlingskemedia.net';
 
   constructor(
-    private readonly ticketBuffer = 1000 * 30, // 30 seconds
-    private readonly errorTimeout = 1000 * 60 * 5, // Five minutes
+    private readonly ticketBuffer = 1000 * 60 * 5, // 5 minutes
+    private readonly errorTimeout = 1000 * 60, // 1 minute
     private readonly requestTimeout = 1000 * 30, // 30 seconds
   ) {}
 
